@@ -111,10 +111,20 @@
     text-transform: uppercase;
     letter-spacing: .1em;
   }
+  .wallpaper-dock-head button{
+    flex-shrink:0;
+    padding: 6px 10px;
+    font-size: 11px;
+    border-radius: 999px;
+    box-shadow: none;
+  }
   .wallpaper-dock-body{
     padding: 12px 14px 14px;
     display:grid;
     gap:10px;
+  }
+  .wallpaper-dock.is-collapsed .wallpaper-dock-body{
+    display:none;
   }
   .wallpaper-actions{
     display:grid;
@@ -597,6 +607,7 @@
   <div class="wallpaper-dock-head">
     <strong>Wallpaper</strong>
     <span>drag an image here</span>
+    <button type="button" id="wallpaperMinimizeBtn" aria-expanded="true">Minimize</button>
   </div>
   <div class="wallpaper-dock-body">
     <div class="wallpaper-actions">
@@ -715,6 +726,10 @@
     activeSavedPlaylistId: null,
     savedPanelOpen: true,
     wallpaper: null,
+    wallpaperDockCollapsed: false,
+    groupCounts: {},
+    visibleChannels: [],
+    gridRenderToken: 0,
   };
 
   const el = {
@@ -727,6 +742,7 @@
     wallpaperDock: document.getElementById('wallpaperDock'),
     wallpaperTojiBtn: document.getElementById('wallpaperTojiBtn'),
     wallpaperPainBtn: document.getElementById('wallpaperPainBtn'),
+    wallpaperMinimizeBtn: document.getElementById('wallpaperMinimizeBtn'),
     wallpaperUploadBtn: document.getElementById('wallpaperUploadBtn'),
     wallpaperClearBtn: document.getElementById('wallpaperClearBtn'),
     wallpaperFileInput: document.getElementById('wallpaperFileInput'),
@@ -752,6 +768,14 @@
     closeBtn: document.getElementById('closeBtn'),
     video: document.getElementById('video'),
   };
+
+  el.grid.addEventListener('click', (event) => {
+    const tile = event.target.closest('.tile');
+    if (!tile) return;
+    const index = Number(tile.dataset.index);
+    const channel = state.visibleChannels[index];
+    if (channel) playChannel(channel);
+  });
 
   let pasteMode = false;
 
@@ -795,6 +819,25 @@
     }
   }
 
+  function setWallpaperDockCollapsed(collapsed) {
+    state.wallpaperDockCollapsed = Boolean(collapsed);
+    el.wallpaperDock.classList.toggle('is-collapsed', state.wallpaperDockCollapsed);
+    el.wallpaperMinimizeBtn.textContent = state.wallpaperDockCollapsed ? 'Expand' : 'Minimize';
+    el.wallpaperMinimizeBtn.setAttribute('aria-expanded', String(!state.wallpaperDockCollapsed));
+    try {
+      localStorage.setItem('signal:wallpaper-dock-collapsed', state.wallpaperDockCollapsed ? '1' : '0');
+    } catch (e) { /* ignore storage limits */ }
+  }
+
+  function restoreWallpaperDockState() {
+    try {
+      const raw = localStorage.getItem('signal:wallpaper-dock-collapsed');
+      setWallpaperDockCollapsed(raw === '1');
+    } catch (e) {
+      setWallpaperDockCollapsed(false);
+    }
+  }
+
   function handleWallpaperFiles(files) {
     const file = Array.from(files || []).find(candidate => candidate && candidate.type && candidate.type.startsWith('image/'));
     if (!file) return;
@@ -817,6 +860,7 @@
 
   el.wallpaperTojiBtn.addEventListener('click', () => setWallpaper(wallpaperPresets.toji.src, wallpaperPresets.toji.label));
   el.wallpaperPainBtn.addEventListener('click', () => setWallpaper(wallpaperPresets.pain.src, wallpaperPresets.pain.label));
+  el.wallpaperMinimizeBtn.addEventListener('click', () => setWallpaperDockCollapsed(!state.wallpaperDockCollapsed));
   el.wallpaperUploadBtn.addEventListener('click', () => el.wallpaperFileInput.click());
   el.wallpaperClearBtn.addEventListener('click', () => setWallpaper(null));
   el.wallpaperFileInput.addEventListener('change', () => handleWallpaperFiles(el.wallpaperFileInput.files));
@@ -900,16 +944,48 @@
     return channels;
   }
 
+  function looksLikePlaylistText(value) {
+    const text = String(value || '').trim();
+    if (!text) return false;
+    if (/^#EXTM3U/i.test(text) || /^#EXTINF/i.test(text)) return true;
+    return text.includes('\n') && (text.includes('#EXTINF') || text.includes('http://') || text.includes('https://'));
+  }
+
+  function openPasteMode() {
+    if (pasteMode) return;
+    el.pasteToggle.click();
+  }
+
+  function revealRawPlaylistText(text) {
+    openPasteMode();
+    el.pasteArea.value = text;
+    el.pasteArea.focus();
+    el.pasteArea.setSelectionRange(text.length, text.length);
+  }
+
+  el.sourceInput.addEventListener('paste', (event) => {
+    const text = event.clipboardData && event.clipboardData.getData('text/plain');
+    if (!looksLikePlaylistText(text)) return;
+    event.preventDefault();
+    revealRawPlaylistText(text);
+  });
+
   function buildGroups(channels) {
     const set = new Set();
-    channels.forEach(c => set.add(c.group || 'Uncategorized'));
+    const counts = {};
+    channels.forEach(c => {
+      const group = c.group || 'Uncategorized';
+      set.add(group);
+      counts[group] = (counts[group] || 0) + 1;
+    });
+    state.groupCounts = counts;
     return ['All', ...Array.from(set).sort((a,b) => a.localeCompare(b))];
   }
 
   function renderSidebar() {
     el.groupList.innerHTML = '';
     state.groups.forEach(g => {
-      const count = g === 'All' ? state.channels.length : state.channels.filter(c => c.group === g).length;
+      const count = g === 'All' ? state.channels.length : (state.groupCounts[g] || 0);
       const btn = document.createElement('button');
       btn.className = 'chip' + (state.activeGroup === g ? ' active' : '');
       btn.innerHTML = `<span>${escapeHtml(g)}</span><span class="count">${count}</span>`;
@@ -1000,6 +1076,8 @@
 
   function renderGrid() {
     const list = currentFiltered();
+    const renderToken = ++state.gridRenderToken;
+    state.visibleChannels = list;
     el.metaCount.textContent = `${list.length} of ${state.channels.length} channels`;
     el.grid.innerHTML = '';
 
@@ -1011,27 +1089,45 @@
       return;
     }
 
-    const frag = document.createDocumentFragment();
-    list.forEach(c => {
-      const tile = document.createElement('button');
-      tile.className = 'tile';
-      tile.setAttribute('type', 'button');
-      const initials = (c.name || '?').trim().slice(0,2).toUpperCase();
+    const chunkSize = list.length > 2000 ? 120 : 200;
+    let index = 0;
 
-      tile.innerHTML = `
-        <div class="logo-wrap">
-          ${c.logo ? `<img src="${escapeAttr(c.logo)}" alt="" loading="lazy" onerror="this.remove()" />` : `<span class="fallback">${escapeHtml(initials)}</span>`}
-        </div>
-        <div class="name">${escapeHtml(c.name)}</div>
-        <div class="row">
-          <span class="group-tag">${escapeHtml(c.group)}</span>
-          <span class="live-dot" title="Live"></span>
-        </div>
-      `;
-      tile.addEventListener('click', () => playChannel(c));
-      frag.appendChild(tile);
-    });
-    el.grid.appendChild(frag);
+    const renderChunk = () => {
+      if (renderToken !== state.gridRenderToken) return;
+
+      const frag = document.createDocumentFragment();
+      const end = Math.min(index + chunkSize, list.length);
+
+      for (; index < end; index++) {
+        const c = list[index];
+        const tile = document.createElement('button');
+        tile.className = 'tile';
+        tile.type = 'button';
+        tile.dataset.index = String(index);
+        const initials = (c.name || '?').trim().slice(0,2).toUpperCase();
+
+        tile.innerHTML = `
+          <div class="logo-wrap">
+            ${c.logo ? `<img src="${escapeAttr(c.logo)}" alt="" loading="lazy" onerror="this.remove()" />` : `<span class="fallback">${escapeHtml(initials)}</span>`}
+          </div>
+          <div class="name">${escapeHtml(c.name)}</div>
+          <div class="row">
+            <span class="group-tag">${escapeHtml(c.group)}</span>
+            <span class="live-dot" title="Live"></span>
+          </div>
+        `;
+        frag.appendChild(tile);
+      }
+
+      el.grid.appendChild(frag);
+
+      if (index < list.length) {
+        el.metaCount.textContent = `Rendering ${index} of ${list.length} channels...`;
+        requestAnimationFrame(renderChunk);
+      }
+    };
+
+    requestAnimationFrame(renderChunk);
   }
 
   function escapeHtml(s) {
@@ -1225,9 +1321,15 @@
       applyPlaylist(text);
       saveLastSource({ type: 'raw', value: text });
     } else {
-      const url = el.sourceInput.value.trim();
-      if (!url) return;
-      loadFromUrl(url);
+      const value = el.sourceInput.value.trim();
+      if (!value) return;
+      if (looksLikePlaylistText(value)) {
+        revealRawPlaylistText(value);
+        applyPlaylist(value);
+        saveLastSource({ type: 'raw', value });
+        return;
+      }
+      loadFromUrl(value);
     }
   });
 
@@ -1276,6 +1378,7 @@
   }
 
   restoreSavedPlaylists();
+  restoreWallpaperDockState();
   restoreWallpaper();
   syncSidebarVisibility();
   renderSavedPlaylists();
