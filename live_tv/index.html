@@ -203,6 +203,15 @@
     text-transform: uppercase;
     text-shadow: 0 2px 0 rgba(0,0,0,.7);
   }
+  .brand-button{
+    appearance:none;
+    background:none;
+    border:none;
+    padding:0;
+    cursor:pointer;
+    text-align:left;
+  }
+  .brand-button:hover{ color: var(--amber); }
   .brand .dot{
     width:10px; height:10px; border-radius:50%;
     background: var(--live);
@@ -270,9 +279,7 @@
     padding:10px 12px;
   }
   .reload-toggle{
-    background: linear-gradient(180deg, #35243a, #1b121f);
-    border-color: rgba(247,201,95,.35);
-    color: var(--amber);
+    display:none;
   }
 
   /* ---------- Layout ---------- */
@@ -631,19 +638,18 @@
 <input type="file" id="wallpaperFileInput" accept="image/*" hidden />
 
 <header>
-  <div class="brand">
+  <button type="button" class="brand brand-button" id="homeBtn" title="Return to home and refresh the page">
     <span class="dot"></span>
     <div>
-      SIGNAL
+      SIGNAL LIVE TV
       <small>personal live tv</small>
     </div>
-  </div>
+  </button>
 
-  <form class="source-form" id="sourceForm">
-    <input type="text" id="sourceInput" placeholder="Paste an M3U/M3U8 URL, or click Paste List to drop raw playlist text…" />
+  <form class="source-form" id="sourceForm" autocomplete="off">
+    <input type="text" id="sourceInput" autocomplete="off" spellcheck="false" placeholder="Paste an M3U/M3U8 URL, or click Paste List to drop raw playlist text…" />
     <button type="button" class="paste-toggle" id="pasteToggle">Paste list</button>
     <button type="button" class="paste-toggle" id="savePlaylistBtn" disabled>Save playlist</button>
-    <button type="button" class="paste-toggle reload-toggle" id="reloadBtn" title="Refresh this page">Pager</button>
     <button type="submit" class="primary" id="loadBtn">Load</button>
   </form>
 </header>
@@ -737,7 +743,7 @@
     sourceInput: document.getElementById('sourceInput'),
     pasteToggle: document.getElementById('pasteToggle'),
     savePlaylistBtn: document.getElementById('savePlaylistBtn'),
-    reloadBtn: document.getElementById('reloadBtn'),
+    homeBtn: document.getElementById('homeBtn'),
     wallpaperLayer: document.getElementById('wallpaperLayer'),
     wallpaperDock: document.getElementById('wallpaperDock'),
     wallpaperTojiBtn: document.getElementById('wallpaperTojiBtn'),
@@ -768,6 +774,9 @@
     closeBtn: document.getElementById('closeBtn'),
     video: document.getElementById('video'),
   };
+
+  el.sourceInput.value = '';
+  el.pasteArea.value = '';
 
   el.grid.addEventListener('click', (event) => {
     const tile = event.target.closest('.tile');
@@ -1204,7 +1213,6 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
       applyPlaylist(text);
-      await saveLastSource({ type: 'url', value: url });
     } catch (err) {
       alert('Could not fetch that URL directly (likely a CORS restriction from the host). Try "Paste list" instead and paste the playlist contents in.\n\nDetails: ' + err.message);
     } finally {
@@ -1309,7 +1317,7 @@
   });
 
   el.savePlaylistBtn.addEventListener('click', saveCurrentPlaylist);
-  el.reloadBtn.addEventListener('click', () => {
+  el.homeBtn.addEventListener('click', () => {
     location.reload();
   });
 
@@ -1319,14 +1327,12 @@
       const text = el.pasteArea.value;
       if (!text.trim()) return;
       applyPlaylist(text);
-      saveLastSource({ type: 'raw', value: text });
     } else {
       const value = el.sourceInput.value.trim();
       if (!value) return;
       if (looksLikePlaylistText(value)) {
         revealRawPlaylistText(value);
         applyPlaylist(value);
-        saveLastSource({ type: 'raw', value });
         return;
       }
       loadFromUrl(value);
@@ -1337,27 +1343,6 @@
     state.query = e.target.value;
     renderGrid();
   });
-
-  // ---------- Persistence (personal, this browser only) ----------
-  async function saveLastSource(payload) {
-    try {
-      localStorage.setItem('signal:last-source', JSON.stringify(payload));
-    } catch (e) { /* storage optional */ }
-  }
-  async function restoreLastSource() {
-    try {
-      const raw = localStorage.getItem('signal:last-source');
-      if (!raw) return;
-      const payload = JSON.parse(raw);
-      if (payload.type === 'url') {
-        el.sourceInput.value = payload.value;
-      } else if (payload.type === 'raw') {
-        el.pasteToggle.click();
-        el.pasteArea.value = payload.value;
-        applyPlaylist(payload.value);
-      }
-    } catch (e) { /* no previous session */ }
-  }
 
   function persistSavedPlaylists() {
     try {
@@ -1382,7 +1367,6 @@
   restoreWallpaper();
   syncSidebarVisibility();
   renderSavedPlaylists();
-  restoreLastSource();
 
 })();
 </script>
