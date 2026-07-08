@@ -336,7 +336,6 @@ footer {
     line-height: 1.8;
     margin-bottom: 20px;
     text-align: justify;
-;
 }
 
 .contact-details div {
@@ -473,5 +472,134 @@ footer {
     
     .auth-section, .social-donate {
         margin: 0 0.5rem;
+    }
+}
+
+/* Article Page Specific Styles */
+.article-main-content {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.article-container {
+    background-color: white;
+    padding: 3rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.article-full-title {
+    font-size: 36px;
+    color: #1e3a8a;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+
+.article-meta {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 2rem;
+    color: #6b7280;
+    font-size: 14px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 1rem;
+}
+
+.article-meta span {
+    display: flex;
+    align-items: center;
+}
+
+.article-hero-image {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    object-fit: cover;
+}
+
+.article-content-body h2 {
+    font-size: 28px;
+    color: #1e3a8a;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.article-content-body p {
+    font-size: 16px;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    color: #333;
+    text-align: justify;
+}
+
+.article-content-body ul {
+    margin-left: 20px;
+    margin-bottom: 1rem;
+    list-style-type: disc;
+}
+
+.article-content-body ul li {
+    font-size: 16px;
+    line-height: 1.8;
+    color: #333;
+}
+
+/* Responsive adjustments for article page */
+@media (max-width: 768px) {
+    .article-main-content {
+        padding: 0 1rem;
+        margin: 1.5rem auto;
+    }
+
+    .article-container {
+        padding: 2rem;
+    }
+
+    .article-full-title {
+        font-size: 28px;
+    }
+
+    .article-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 1.5rem;
+    }
+
+    .article-content-body h2 {
+        font-size: 24px;
+        margin-top: 1.5rem;
+    }
+
+    .article-content-body p,
+    .article-content-body ul li {
+        font-size: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-container {
+        padding: 1.5rem;
+    }
+
+    .article-full-title {
+        font-size: 22px;
+    }
+
+    .article-meta {
+        font-size: 13px;
+        margin-bottom: 1rem;
+    }
+
+    .article-content-body h2 {
+        font-size: 20px;
+        margin-top: 1rem;
+    }
+
+    .article-content-body p,
+    .article-content-body ul li {
+        font-size: 14px;
     }
 }

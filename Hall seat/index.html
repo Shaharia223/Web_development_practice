@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bijoy Ekattor Hall Seat Allocation Management System, DU</title>
+    <meta name="description" content="Free online hall seat allocation management system. Track student seat allocations with real-time status updates. 100% offline-capable with Excel import/export.">
+    <meta name="keywords" content="hall management, seat allocation, student housing, university hall, seat tracker">
+    <meta name="author" content="Hall Management System">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-image: url('./bijoy-ekattor-hall.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            z-index: -1;
+            backdrop-filter: blur(1px);
+        }
+        
+        /* Enhanced header with better photo integration */
+        header {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Enhanced card backgrounds */
+        .bg-white {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        
+        /* Text shadows for better contrast */
+        header h1 {
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        header p {
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+            padding: 8px;
+        }
+        @media (max-width: 640px) {
+            .grid-container {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 12px;
+            }
+        }
+        /* Empty state styling */
+        .empty-state {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            text-align: center;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 16px;
+            border: 2px dashed #cbd5e1;
+        }
+        .seat-card {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            min-height: 120px;
+        }
+        .seat-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+        .seat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        .seat-card > * {
+            position: relative;
+            z-index: 2;
+        }
+        .seat-card .seat-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+        }
+        .seat-card .status-icon {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+        .seat-card .seat-id {
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .seat-card .building-info {
+            font-size: 0.65rem;
+            opacity: 0.85;
+            font-weight: 600;
+            text-align: center;
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+        .seat-card .floor-info {
+            font-size: 0.65rem;
+            opacity: 1;
+            color: #4f46e5;
+            font-weight: 800;
+            margin-top: 2px;
+            background: rgba(79, 70, 229, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(79, 70, 229, 0.2);
+            text-align: center;
+        }
+        .seat-card .floor-teacher {
+            font-size: 0.55rem;
+            font-weight: 600;
+            opacity: 0.85;
+            padding: 1px 4px;
+            border-radius: 6px;
+            background: rgba(99, 102, 241, 0.1);
+            color: #4338ca;
+            margin-top: 2px;
+            text-align: center;
+            line-height: 1.2;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        .seat-card .student-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+        }
+        .seat-card .student-name {
+            font-size: 0.7rem;
+            font-weight: 600;
+            line-height: 1.3;
+            text-align: center;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            margin-bottom: 2px;
+        }
+        .seat-card .student-dept {
+            font-size: 0.6rem;
+            font-weight: 500;
+            opacity: 0.8;
+            padding: 2px 6px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .seat-card:active {
+            transform: translateY(-2px) scale(1.01);
+        }
+        .seat-card:hover .status-icon {
+            transform: scale(1.2) rotate(5deg);
+        }
+        .seat-card:hover .seat-id {
+            transform: scale(1.05);
+        }
+        /* Additional hover effects */
+        .expired:hover {
+            box-shadow: 0 20px 40px rgba(239, 68, 68, 0.3), 0 8px 16px rgba(220, 38, 38, 0.2);
+        }
+        .current:hover {
+            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3), 0 8px 16px rgba(5, 150, 105, 0.2);
+        }
+        /* Animation for card entrance - Optimized for large datasets */
+        @keyframes cardFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .seat-card {
+            animation: cardFadeIn 0.2s ease-out forwards;
+        }
+        /* Reduce animations for performance with large datasets */
+        .seat-card:nth-child(n+1) { animation-delay: 0ms; }
+        
+        /* Pagination Controls */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .pagination-button {
+            padding: 8px 12px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .pagination-button:hover {
+            background: #2563eb;
+        }
+        .pagination-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .pagination-button.active {
+            background: #1d4ed8;
+            font-weight: bold;
+        }
+        .pagination-info {
+            font-size: 0.9rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        .items-per-page {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        
+        /* Loading state */
+        .seat-grid-loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        .seat-grid-loading .seat-card {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .seat-card {
+                min-height: 100px;
+                padding: 8px;
+            }
+            .seat-card .seat-id {
+                font-size: 0.8rem;
+            }
+            .seat-card .student-name {
+                font-size: 0.65rem;
+            }
+            .seat-card .building-info {
+                font-size: 0.6rem;
+            }
+        }
+        /* Enhanced modal with photo integration */
+        #details-modal .bg-white {
+            background: rgba(255, 255, 255, 0.98) !important;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Enhanced seat cards */
+        .seat-card {
+            background: rgba(255, 255, 255, 0.96) !important;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .seat-card:hover {
+            background: rgba(255, 255, 255, 0.98) !important;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Enhanced footer */
+        footer {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        
+        .expired {
+            background: linear-gradient(135deg, rgba(254, 226, 226, 0.95) 0%, rgba(252, 165, 165, 0.95) 50%, rgba(248, 113, 113, 0.95) 100%) !important;
+            border: 3px solid #ef4444;
+            color: #7f1d1d;
+            backdrop-filter: blur(8px);
+        }
+        .expired .status-icon {
+            color: #dc2626;
+        }
+        .expired .student-dept {
+            background: rgba(239, 68, 68, 0.2);
+            color: #991b1b;
+        }
+        .current {
+            background: linear-gradient(135deg, rgba(209, 250, 229, 0.95) 0%, rgba(110, 231, 183, 0.95) 50%, rgba(52, 211, 153, 0.95) 100%) !important;
+            border: 3px solid #10b981;
+            color: #064e3b;
+            backdrop-filter: blur(8px);
+        }
+        .current .status-icon {
+            color: #059669;
+        }
+        .current .student-dept {
+            background: rgba(16, 185, 129, 0.15);
+            color: #065f46;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 sm:p-8">
+
+    <div id="app" class="max-w-7xl mx-auto">
+        
+        <!-- Header -->
+        <header class="text-center mb-8 bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-700">
+            <div class="flex items-center justify-center mb-3">
+                <div class="text-5xl mr-4">🏛️</div>
+                <div>
+                    <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-1">Bijoy Ekattor Hall</h1>
+                    <p class="text-lg text-blue-700 font-semibold">Seat Allocation Management System</p>
+                </div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-gray-200">
+                <p class="text-sm text-gray-600">University of Dhaka</p>
+            </div>
+        </header>
+
+        <!-- Main Seat Grid -->
+        <div id="seat-grid-container">
+            <div class="bg-white rounded-lg shadow-md p-5 mb-6 border-l-4 border-blue-600">
+                <h2 class="text-2xl font-bold mb-2 text-gray-800 flex items-center">
+                    <span class="mr-3">📊</span>
+                    Seat Allocation Status
+                </h2>
+                <p class="text-sm text-gray-600">Current academic session seat allocation and occupancy details</p>
+            </div>
+            
+            <!-- Filters and View Options -->
+            <div class="mb-6 p-5 bg-white rounded-lg shadow-md border border-gray-200">
+                <h3 class="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Search & Filter Options</h3>
+                <div class="flex flex-wrap gap-4 items-center justify-between">
+                    <div class="flex items-center space-x-3 flex-wrap gap-2">
+                        <select id="building-filter" class="border-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white">
+                            <option value="">All Buildings</option>
+                        </select>
+                        <select id="room-filter" class="border-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white">
+                            <option value="">All Rooms</option>
+                        </select>
+                        <select id="floor-filter" class="border-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white">
+                            <option value="">All Floors</option>
+                        </select>
+                        <select id="status-filter" class="border-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white">
+                            <option value="">All Status</option>
+                            <option value="current">Current Only</option>
+                            <option value="expired">Expired Only</option>
+                        </select>
+                        <input type="text" id="search-input" placeholder="Search by seat ID, name, or department..." class="border-2 border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 w-64 bg-white">
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button id="clear-filters" class="px-4 py-2 text-sm bg-gray-600 text-white rounded-md transition-colors hover:bg-gray-700 font-medium shadow-sm">Clear Filters</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Legend and Stats -->
+            <div class="mb-6 p-5 bg-white rounded-lg shadow-md border border-gray-200">
+                <div class="flex flex-wrap justify-between items-center gap-4">
+                    <div class="flex space-x-8 text-sm font-semibold">
+                        <span class="flex items-center">
+                            <span class="w-4 h-4 rounded-full bg-red-500 border-2 border-red-700 mr-2"></span>
+                            <span class="text-gray-700">Expired Allocation</span>
+                        </span>
+                        <span class="flex items-center">
+                            <span class="w-4 h-4 rounded-full bg-green-500 border-2 border-green-700 mr-2"></span>
+                            <span class="text-gray-700">Current Allocation</span>
+                        </span>
+                    </div>
+                    <div id="seat-count" class="text-sm text-gray-700 font-semibold">
+                        <!-- Seat count will be displayed here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pagination Controls -->
+            <div id="pagination-container" class="pagination-container hidden">
+                <div class="items-per-page">
+                    <label>Show:</label>
+                    <select id="items-per-page" class="border border-gray-300 rounded px-2 py-1 text-sm">
+                        <option value="50">50</option>
+                        <option value="100" selected>100</option>
+                        <option value="200">200</option>
+                        <option value="500">500</option>
+                        <option value="all">All</option>
+                    </select>
+                </div>
+                
+                <div class="pagination-controls">
+                    <button id="prev-page" class="pagination-button">← Previous</button>
+                    <span class="pagination-info">
+                        Page <span id="current-page">1</span> of <span id="total-pages">1</span>
+                    </span>
+                    <button id="next-page" class="pagination-button">Next →</button>
+                </div>
+                
+                <div class="pagination-info">
+                    Showing <span id="items-range">1-100</span> of <span id="total-items">0</span> seats
+                </div>
+            </div>
+
+            <!-- Grid View -->
+            <div id="grid-view">
+                <div id="seat-grid" class="grid-container">
+                    <!-- Seat Cards will be injected here -->
+                </div>
+            </div>
+            
+            <!-- Pagination Controls (Bottom) -->
+            <div id="pagination-bottom" class="pagination-container hidden">
+                <button id="prev-page-bottom" class="pagination-button">← Previous</button>
+                <span class="pagination-info">
+                    Page <span id="current-page-bottom">1</span> of <span id="total-pages-bottom">1</span>
+                </span>
+                <button id="next-page-bottom" class="pagination-button">Next →</button>
+            </div>
+            
+            <!-- Data Summary -->
+            <div class="mb-4 p-4 bg-white border rounded-lg shadow-sm border border-gray-200">
+                <div class="flex justify-center items-center">
+                    <div id="data-summary" class="text-sm font-medium text-gray-700">
+                        <div class="flex flex-wrap gap-6">
+                            <span id="total-buildings">Buildings: 0</span>
+                            <span id="total-rooms">Rooms: 0</span>
+                            <span id="total-seats-summary">Total Seats: 0</span>
+                            <span id="current-seats-summary">Current: 0</span>
+                            <span id="expired-seats-summary">Expired: 0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-12 text-center text-sm text-gray-600 border-t pt-6 bg-white">
+        <div class="max-w-7xl mx-auto px-4">
+            <p class="font-medium">© 2025 Bijoy Ekattor Hall, University of Dhaka</p>
+            <p class="mt-2 text-gray-500">For official use only • Hall Administration System</p>
+        </div>
+    </footer>
+
+    <!-- Modal for Seat Details -->
+    <div id="details-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 transform transition-all border border-gray-200">
+            <h3 id="modal-title" class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2"></h3>
+            <div class="space-y-3">
+                <p class="text-base"><span class="font-semibold text-gray-700 w-24 inline-block">Student:</span> <span id="modal-name" class="text-gray-900"></span></p>
+                <p class="text-base"><span class="font-semibold text-gray-700 w-24 inline-block">Department:</span> <span id="modal-dept" class="text-gray-900"></span></p>
+                <p class="text-base"><span class="font-semibold text-gray-700 w-24 inline-block">Session:</span> <span id="modal-session" class="text-gray-900"></span></p>
+                <p class="text-base"><span class="font-semibold text-gray-700 w-24 inline-block">Room:</span> <span id="modal-room" class="text-gray-900"></span></p>
+                <p class="text-base"><span class="font-semibold text-gray-700 w-24 inline-block">Building:</span> <span id="modal-building" class="text-gray-900"></span></p>
+                <p class="text-base"><span class="font-semibold text-gray-700 w-24 inline-block">Floor:</span> <span id="modal-floor" class="text-gray-900"></span></p>
+                <p class="text-base"><span class="font-semibold text-gray-700 w-24 inline-block">Floor Teacher:</span> <span id="modal-teacher" class="text-gray-900"></span></p>
+                <p class="text-base"><span class="font-semibold text-gray-700 w-24 inline-block">Status:</span> <span id="modal-status" class="font-bold px-3 py-1 rounded-md text-sm"></span></p>
+            </div>
+            <button id="close-modal" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 px-4 rounded-md transition duration-200 mt-6 shadow-sm">Close</button>
+        </div>
+    </div>
+
+    <!-- Include SheetJS library for Excel support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script>
+        // Local Storage Keys
+        const STORAGE_KEY = 'hall_seat_data';
+        
+        // Performance and Pagination Variables
+        let currentPage = 1;
+        let itemsPerPage = 100;
+        let totalFilteredSeats = 0;
+        let allFilteredSeats = {};
+        let renderStartTime = 0;
+
+        // Load data from localStorage or return empty object for Excel-driven mode
+        function loadSeatData() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                return JSON.parse(stored);
+            }
+            
+            // Return empty object - data should be loaded from Excel files
+            return {};
+        }
+
+        // Save data to localStorage
+        function inferFloorFromRoom(room_no) {
+            if (!room_no || room_no === 'N/A') return 'N/A';
+            const roomStr = room_no.toString();
+            
+            // Extract the floor number from room number pattern
+            // Pattern: Room numbers are typically FFRRR where F=Floor, R=Room
+            // Examples: 10001 -> 10th, 2001 -> 2nd, 3001 -> 3rd
+            let floorNum;
+            
+            if (roomStr.length === 5) {
+                // 5-digit room numbers: take first 2 digits (e.g., 10001 -> 10)
+                floorNum = parseInt(roomStr.slice(0, 2));
+            } else if (roomStr.length === 4) {
+                // 4-digit room numbers: take first 1 digit (e.g., 3001 -> 3, 2001 -> 2)
+                floorNum = parseInt(roomStr.charAt(0));
+            } else {
+                // Default fallback
+                return 'N/A';
+            }
+            
+            if (isNaN(floorNum) || floorNum <= 0) return 'N/A';
+            
+            // Convert to ordinal format (1st, 2nd, 3rd, 4th, etc.)
+            const suffix = getOrdinalSuffix(floorNum);
+            return `${floorNum}${suffix} Floor`;
+        }
+        
+        // Get ordinal suffix for numbers (st, nd, rd, th)
+        function getOrdinalSuffix(num) {
+            const j = num % 10;
+            const k = num % 100;
+            if (j === 1 && k !== 11) return 'st';
+            if (j === 2 && k !== 12) return 'nd';
+            if (j === 3 && k !== 13) return 'rd';
+            return 'th';
+        }
+
+        // Save data to localStorage
+        function saveSeatData(data) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
+
+        // Update filter options
+        function updateFilters(seats) {
+            const buildings = new Set();
+            const rooms = new Set();
+            const floors = new Set();
+            
+            Object.values(seats).forEach(seat => {
+                if (seat.building && seat.building !== 'N/A') buildings.add(seat.building);
+                if (seat.room_no && seat.room_no !== 'N/A') rooms.add(seat.room_no);
+                if (seat.floor_no && seat.floor_no !== 'N/A') floors.add(seat.floor_no);
+            });
+            
+            // Update building filter
+            const buildingFilter = document.getElementById('building-filter');
+            const currentBuilding = buildingFilter.value;
+            buildingFilter.innerHTML = '<option value="">All Buildings</option>';
+            Array.from(buildings).sort().forEach(building => {
+                const option = document.createElement('option');
+                option.value = building;
+                option.textContent = building;
+                if (building === currentBuilding) option.selected = true;
+                buildingFilter.appendChild(option);
+            });
+            
+            // Update room filter
+            const roomFilter = document.getElementById('room-filter');
+            const currentRoom = roomFilter.value;
+            roomFilter.innerHTML = '<option value="">All Rooms</option>';
+            Array.from(rooms).sort().forEach(room => {
+                const option = document.createElement('option');
+                option.value = room;
+                option.textContent = room;
+                if (room === currentRoom) option.selected = true;
+                roomFilter.appendChild(option);
+            });
+            
+            // Update floor filter
+            const floorFilter = document.getElementById('floor-filter');
+            const currentFloor = floorFilter.value;
+            floorFilter.innerHTML = '<option value="">All Floors</option>';
+            Array.from(floors).sort().forEach(floor => {
+                const option = document.createElement('option');
+                option.value = floor;
+                option.textContent = floor;
+                if (floor === currentFloor) option.selected = true;
+                floorFilter.appendChild(option);
+            });
+        }
+
+        // Optimized filter function for large datasets
+        function getFilteredSeats(seats) {
+            const buildingFilter = document.getElementById('building-filter').value;
+            const roomFilter = document.getElementById('room-filter').value;
+            const floorFilter = document.getElementById('floor-filter').value;
+            const statusFilter = document.getElementById('status-filter').value;
+            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+            
+            // If no filters, return all seats
+            if (!buildingFilter && !roomFilter && !floorFilter && !statusFilter && !searchTerm) {
+                return seats;
+            }
+            
+            const filtered = {};
+            const seatEntries = Object.entries(seats);
+            
+            // Use for loop for better performance with large datasets
+            for (let i = 0; i < seatEntries.length; i++) {
+                const [seatId, data] = seatEntries[i];
+                
+                // Early exit conditions for better performance
+                if (buildingFilter && data.building !== buildingFilter) continue;
+                if (roomFilter && data.room_no !== roomFilter) continue;
+                if (floorFilter && data.floor_no !== floorFilter) continue;
+                if (statusFilter === 'current' && data.is_expired) continue;
+                if (statusFilter === 'expired' && !data.is_expired) continue;
+                
+                // Search filter
+                if (searchTerm) {
+                    const searchableText = `${seatId} ${data.name} ${data.department} ${data.session}`.toLowerCase();
+                    if (!searchableText.includes(searchTerm)) continue;
+                }
+                
+                filtered[seatId] = data;
+            }
+            
+            return filtered;
+        }
+
+        // Extract building code from seat ID (e.g., J-10007(A) -> J)
+        function getBuildingCode(seatId) {
+            const match = seatId.match(/^([A-Z]+)-/);
+            return match ? match[1] : '';
+        }
+
+        // Sort seats intelligently by room and seat letter
+        function sortSeats(seats) {
+            return Object.entries(seats).sort(([idA], [idB]) => {
+                // Extract room number and seat letter
+                const matchA = idA.match(/^([A-Z]+)-(\d+)\(([A-Z])\)$/);
+                const matchB = idB.match(/^([A-Z]+)-(\d+)\(([A-Z])\)$/);
+                
+                if (!matchA || !matchB) return idA.localeCompare(idB);
+                
+                const [, buildingA, roomA, seatA] = matchA;
+                const [, buildingB, roomB, seatB] = matchB;
+                
+                // Sort by building, then room number, then seat letter
+                if (buildingA !== buildingB) return buildingA.localeCompare(buildingB);
+                if (roomA !== roomB) return parseInt(roomA) - parseInt(roomB);
+                return seatA.localeCompare(seatB);
+            });
+        }
+
+        // Optimized render grid view with pagination
+        function renderGridView(seats) {
+            renderStartTime = performance.now();
+            const filteredSeats = getFilteredSeats(seats);
+            allFilteredSeats = filteredSeats;
+            totalFilteredSeats = Object.keys(filteredSeats).length;
+            
+            // Show/hide pagination based on data size
+            const showPagination = totalFilteredSeats > 50;
+            togglePagination(showPagination);
+            
+            if (showPagination) {
+                renderPaginatedView();
+            } else {
+                renderAllSeats(filteredSeats);
+            }
+        }
+        
+        // Render paginated view for large datasets
+        function renderPaginatedView() {
+            const grid = document.getElementById('seat-grid');
+            grid.classList.add('seat-grid-loading');
+            
+            setTimeout(() => {
+                const sortedSeats = sortSeats(allFilteredSeats);
+                const totalPages = Math.ceil(totalFilteredSeats / itemsPerPage);
+                
+                // Check if no data
+                if (totalFilteredSeats === 0) {
+                    grid.innerHTML = '';
+                    grid.classList.remove('seat-grid-loading');
+                    renderEmptyState(grid);
+                    return;
+                }
+                
+                // Ensure current page is valid
+                if (currentPage > totalPages) currentPage = 1;
+                
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const endIndex = Math.min(startIndex + itemsPerPage, totalFilteredSeats);
+                const pageSeats = sortedSeats.slice(startIndex, endIndex);
+                
+                // Clear grid and render current page
+                grid.innerHTML = '';
+                grid.classList.remove('seat-grid-loading');
+                
+                // Use document fragment for better performance
+                const fragment = document.createDocumentFragment();
+                
+                pageSeats.forEach(([seatId, data]) => {
+                    const card = createSeatCard(seatId, data);
+                    fragment.appendChild(card);
+                });
+                
+                grid.appendChild(fragment);
+                
+                // Update pagination controls
+                updatePaginationControls();
+                
+            }, 50);
+        }
+        
+        // Render all seats for small datasets (no pagination)
+        function renderAllSeats(filteredSeats) {
+            const grid = document.getElementById('seat-grid');
+            grid.classList.add('seat-grid-loading');
+            
+            setTimeout(() => {
+                const sortedSeats = sortSeats(filteredSeats);
+                grid.innerHTML = '';
+                grid.classList.remove('seat-grid-loading');
+                
+                // Check if no data
+                if (sortedSeats.length === 0) {
+                    renderEmptyState(grid);
+                    return;
+                }
+                
+                const fragment = document.createDocumentFragment();
+                
+                sortedSeats.forEach(([seatId, data]) => {
+                    const card = createSeatCard(seatId, data);
+                    fragment.appendChild(card);
+                });
+                
+                grid.appendChild(fragment);
+                
+            }, 50);
+        }
+
+        // Check if any filters are active
+        function hasActiveFilters() {
+            const buildingFilter = document.getElementById('building-filter').value;
+            const roomFilter = document.getElementById('room-filter').value;
+            const floorFilter = document.getElementById('floor-filter').value;
+            const statusFilter = document.getElementById('status-filter').value;
+            const searchTerm = document.getElementById('search-input').value.trim();
+            
+            return !!(buildingFilter || roomFilter || floorFilter || statusFilter || searchTerm);
+        }
+
+        // Render empty state when no data is available
+        function renderEmptyState(grid) {
+            // Check if filters are active
+            if (hasActiveFilters()) {
+                // Simple empty state for filtered results
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="text-6xl mb-4">�</div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">No Data Available</h3>
+                        <p class="text-gray-600 mb-4">
+                            No seats match your current filters.
+                        </p>
+                        <button onclick="document.getElementById('clear-filters').click()" class="px-4 py-2 bg-blue-700 text-white rounded-md hover:bg-blue-800 transition-colors font-medium shadow-sm">
+                            Clear All Filters
+                        </button>
+                    </div>
+                `;
+            } else {
+                // Full empty state for when there's no data at all
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="text-6xl mb-4">�📁</div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">No Data Available</h3>
+                        <p class="text-gray-600 mb-6 max-w-md">
+                            Upload an Excel file with your hall seat data to get started, or load sample data for demonstration.
+                        </p>
+                        <div class="flex gap-3 flex-wrap justify-center">
+                            <p class="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                📁 <strong>Data will be automatically loaded</strong> from the Excel file in this folder.
+                            </p>
+                        </div>
+                        <div class="mt-6 p-4 bg-white rounded-lg border border-gray-200 text-sm text-gray-600 max-w-lg">
+                            <p class="font-semibold mb-2 text-gray-800">📋 Required Excel Columns:</p>
+                            <div class="text-left space-y-1">
+                                <div>• <strong>Seat ID:</strong> J-10007(A), P-20001(B), etc.</div>
+                                <div>• <strong>Student Name:</strong> Full name</div>
+                                <div>• <strong>Department:</strong> CSE, EEE, BBA, etc.</div>
+                                <div>• <strong>Session:</strong> 2023-24, 2022-23, etc.</div>
+                                <div>• <strong>Room No:</strong> 10007, 20001, etc.</div>
+                                <div>• <strong>Building:</strong> Jamuna Building, etc.</div>
+                                <div>• <strong>Floor No:</strong> 1st Floor, 2nd Floor, etc.</div>
+                                <div>• <strong>Floor Teacher:</strong> Dr. Rahman, Prof. Ahmed, etc.</div>
+                                <div>• <strong>Status:</strong> Current or Expired</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Optimized seat card creation
+        function createSeatCard(seatId, data) {
+            const isExpired = data.is_expired;
+            const statusClass = isExpired ? 'expired' : 'current';
+            const statusIcon = isExpired ? '⚠️' : '✅';
+            const buildingCode = getBuildingCode(seatId);
+            
+            const card = document.createElement('div');
+            card.id = `seat-${seatId}`;
+            card.className = `seat-card ${statusClass}`;
+            card.innerHTML = `
+                <div class="seat-header">
+                    <div class="status-icon">${statusIcon}</div>
+                    <div class="seat-id">${seatId}</div>
+                    <div class="building-info">
+                        <div>${buildingCode} Building</div>
+                        <div>Room ${data.room_no}</div>
+                        <div class="floor-info">${data.floor_no || 'N/A'}</div>
+                    </div>
+                </div>
+                <div class="student-section">
+                    <div class="student-name" title="${data.name}">${data.name}</div>
+                    <div class="student-dept">${data.department}</div>
+                    <div class="floor-teacher" title="Floor Teacher: ${data.floor_teacher || 'N/A'}">
+                        👨‍🏫 ${data.floor_teacher || 'N/A'}
+                    </div>
+                </div>
+            `;
+            
+            card.addEventListener('click', () => showDetails(data));
+            return card;
+        }
+        
+        // Toggle pagination visibility
+        function togglePagination(show) {
+            const containers = ['pagination-container', 'pagination-bottom'];
+            containers.forEach(id => {
+                const element = document.getElementById(id);
+                if (show) {
+                    element.classList.remove('hidden');
+                } else {
+                    element.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Update pagination controls
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(totalFilteredSeats / itemsPerPage);
+            const startItem = (currentPage - 1) * itemsPerPage + 1;
+            const endItem = Math.min(currentPage * itemsPerPage, totalFilteredSeats);
+            
+            // Update page info
+            document.getElementById('current-page').textContent = currentPage;
+            document.getElementById('total-pages').textContent = totalPages;
+            document.getElementById('current-page-bottom').textContent = currentPage;
+            document.getElementById('total-pages-bottom').textContent = totalPages;
+            document.getElementById('items-range').textContent = `${startItem}-${endItem}`;
+            document.getElementById('total-items').textContent = totalFilteredSeats;
+            
+            // Update button states
+            const prevButtons = ['prev-page', 'prev-page-bottom'];
+            const nextButtons = ['next-page', 'next-page-bottom'];
+            
+            prevButtons.forEach(id => {
+                document.getElementById(id).disabled = currentPage === 1;
+            });
+            
+            nextButtons.forEach(id => {
+                document.getElementById(id).disabled = currentPage === totalPages;
+            });
+        }
+
+
+
+        // Update data summary display
+        function updateDataSummary(seats) {
+            const buildings = new Set();
+            const rooms = new Set();
+            let currentCount = 0;
+            let expiredCount = 0;
+
+            Object.values(seats).forEach(seat => {
+                buildings.add(seat.building);
+                rooms.add(`${seat.building}-${seat.room_no}`);
+                if (seat.is_expired) {
+                    expiredCount++;
+                } else {
+                    currentCount++;
+                }
+            });
+
+            document.getElementById('total-buildings').textContent = `Buildings: ${buildings.size}`;
+            document.getElementById('total-rooms').textContent = `Rooms: ${rooms.size}`;
+            document.getElementById('total-seats-summary').textContent = `Total Seats: ${Object.keys(seats).length}`;
+            document.getElementById('current-seats-summary').textContent = `Current: ${currentCount}`;
+            document.getElementById('expired-seats-summary').textContent = `Expired: ${expiredCount}`;
+        }
+
+
+
+        // Main render function
+        function renderSeatGrid(seats) {
+            updateFilters(seats);
+            updateSeatCount(seats);
+            updateDataSummary(seats);
+            renderGridView(seats);
+        }
+
+        // Update seat count display
+        function updateSeatCount(seats) {
+            const filteredSeats = getFilteredSeats(seats);
+            const totalSeats = Object.keys(seats).length;
+            const filteredCount = Object.keys(filteredSeats).length;
+            const currentCount = Object.values(filteredSeats).filter(data => !data.is_expired).length;
+            const expiredCount = Object.values(filteredSeats).filter(data => data.is_expired).length;
+            
+            document.getElementById('seat-count').innerHTML = `
+                <strong>Showing ${filteredCount} of ${totalSeats} seats</strong> - 
+                <span class="text-green-600">${currentCount} current</span>, 
+                <span class="text-red-600">${expiredCount} expired</span>
+            `;
+        }
+
+        // Modal functionality
+        const modal = document.getElementById('details-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalName = document.getElementById('modal-name');
+        const modalDept = document.getElementById('modal-dept');
+        const modalSession = document.getElementById('modal-session');
+        const modalRoom = document.getElementById('modal-room');
+        const modalBuilding = document.getElementById('modal-building');
+        const modalStatus = document.getElementById('modal-status');
+
+        function showDetails(data) {
+            const statusText = data.is_expired ? 'EXPIRED' : 'CURRENT';
+            const statusColorClass = data.is_expired ? 'bg-red-500 text-white' : 'bg-emerald-500 text-white';
+
+            modalTitle.textContent = `Seat ${data.seat_id}`;
+            modalName.textContent = data.name || 'N/A';
+            modalDept.textContent = data.department || 'N/A';
+            modalSession.textContent = data.session || 'N/A';
+            modalRoom.textContent = data.room_no || 'N/A';
+            modalBuilding.textContent = data.building || 'N/A';
+            document.getElementById('modal-floor').textContent = data.floor_no || 'N/A';
+            document.getElementById('modal-teacher').textContent = data.floor_teacher || 'N/A';
+            modalStatus.textContent = statusText;
+            modalStatus.className = `font-bold px-2 py-0.5 rounded-lg ${statusColorClass}`;
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        document.getElementById('close-modal').addEventListener('click', () => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        });
+
+        // Search functionality with debouncing for performance
+        let searchTimeout;
+        document.getElementById('search-input').addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentPage = 1;
+                const currentData = loadSeatData();
+                renderSeatGrid(currentData);
+            }, 300); // 300ms debounce
+        });
+        
+        // Clear all filters and search
+        document.getElementById('clear-filters').addEventListener('click', () => {
+            document.getElementById('building-filter').value = '';
+            document.getElementById('room-filter').value = '';
+            document.getElementById('floor-filter').value = '';
+            document.getElementById('status-filter').value = '';
+            document.getElementById('search-input').value = '';
+            currentPage = 1;
+            
+            // Re-render with cleared filters
+            const currentData = loadSeatData();
+            renderSeatGrid(currentData);
+        });
+
+        // Add filter event listeners
+        document.getElementById('building-filter').addEventListener('change', () => {
+            currentPage = 1; // Reset to first page when filtering
+            const currentData = loadSeatData();
+            renderSeatGrid(currentData);
+        });
+        
+        document.getElementById('room-filter').addEventListener('change', () => {
+            currentPage = 1;
+            const currentData = loadSeatData();
+            renderSeatGrid(currentData);
+        });
+        
+        document.getElementById('floor-filter').addEventListener('change', () => {
+            currentPage = 1;
+            const currentData = loadSeatData();
+            renderSeatGrid(currentData);
+        });
+        
+        document.getElementById('status-filter').addEventListener('change', () => {
+            currentPage = 1;
+            const currentData = loadSeatData();
+            renderSeatGrid(currentData);
+        });
+        
+        // Pagination event listeners
+        document.getElementById('items-per-page').addEventListener('change', (e) => {
+            const value = e.target.value;
+            itemsPerPage = value === 'all' ? totalFilteredSeats : parseInt(value);
+            currentPage = 1;
+            renderPaginatedView();
+        });
+        
+        // Previous page buttons
+        ['prev-page', 'prev-page-bottom'].forEach(id => {
+            document.getElementById(id).addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderPaginatedView();
+                }
+            });
+        });
+        
+        // Next page buttons
+        ['next-page', 'next-page-bottom'].forEach(id => {
+            document.getElementById(id).addEventListener('click', () => {
+                const totalPages = Math.ceil(totalFilteredSeats / itemsPerPage);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderPaginatedView();
+                }
+            });
+        });
+        
+        // Keyboard shortcuts for pagination
+        document.addEventListener('keydown', (e) => {
+            // Don't interfere if user is typing in inputs
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            
+            // Escape to close modal
+            if (e.key === 'Escape') {
+                const detailsModal = document.getElementById('details-modal');
+                if (!detailsModal.classList.contains('hidden')) {
+                    document.getElementById('close-modal').click();
+                }
+            }
+            
+            if (e.key === 'ArrowLeft' && e.ctrlKey) {
+                e.preventDefault();
+                document.getElementById('prev-page').click();
+            } else if (e.key === 'ArrowRight' && e.ctrlKey) {
+                e.preventDefault();
+                document.getElementById('next-page').click();
+            }
+        });
+
+        // Function to automatically load Excel file from the folder
+        async function loadExcelFromFolder() {
+            try {
+                const response = await fetch('./Hall_Seat_Allocation_2025.xlsx');
+                
+                if (!response.ok) {
+                    return false;
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const data = new Uint8Array(arrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Get first worksheet
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                
+                // Convert to JSON
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                
+                // Process the data
+                const seatData = {};
+                const seenIds = new Set();
+                let processedCount = 0;
+                
+                jsonData.forEach((row, index) => {
+                    const seat_id = row['Seat ID'] || row['seat_id'] || row['SeatID'] || row['ID'] || row['Seat_ID'];
+                    const name = row['Student Name'] || row['Name'] || row['name'] || row['Student_Name'];
+                    const department = row['Department'] || row['department'] || row['Dept'] || row['DEPT'];
+                    const session = row['Session'] || row['session'] || row['Year'] || row['Academic_Year'];
+                    const room_no = row['Room No'] || row['room_no'] || row['Room'] || row['RoomNo'] || row['Room_No'];
+                    const building = row['Building'] || row['building'] || row['Block'] || row['Building_Name'];
+                    const status = row['Status'] || row['status'] || row['State'] || row['Condition'];
+                    let floor_no = row['Floor No'] || row['floor_no'] || row['Floor'] || row['Floor_No'];
+                    const floor_teacher = row['Floor Teacher'] || row['floor_teacher'] || row['Teacher'] || row['Floor_Teacher'];
+                    
+                    // If floor_no is not provided or is N/A, infer it from room number
+                    if (!floor_no || floor_no === 'N/A') {
+                        floor_no = inferFloorFromRoom(room_no);
+                    }
+                    
+                    if (!seat_id || seenIds.has(seat_id)) {
+                        return;
+                    }
+                    
+                    seenIds.add(seat_id);
+                    const is_expired = status && status.toString().toLowerCase().includes('expired');
+                    
+                    seatData[seat_id] = {
+                        seat_id: seat_id.toString(),
+                        name: name || 'N/A',
+                        department: department || 'N/A',
+                        session: session || 'N/A',
+                        room_no: room_no || 'N/A',
+                        building: building || 'N/A',
+                        floor_no: floor_no || 'N/A',
+                        floor_teacher: floor_teacher || 'N/A',
+                        is_expired: is_expired
+                    };
+                    processedCount++;
+                });
+                
+                if (processedCount > 0) {
+                    saveSeatData(seatData);
+                    renderSeatGrid(seatData);
+                    return true;
+                }
+                
+            } catch (error) {
+                return false;
+            }
+            return false;
+        }
+
+        // Initialize app
+        async function initializeApp() {
+            // First try to load from existing localStorage
+            let initialData = loadSeatData();
+            
+            // If no data in localStorage, try to auto-load from Excel file
+            if (Object.keys(initialData).length === 0) {
+                const loaded = await loadExcelFromFolder();
+                if (!loaded) {
+                    renderSeatGrid({});
+                    return;
+                }
+                return;
+            }
+            
+            // Render existing data from localStorage
+            renderSeatGrid(initialData);
+        }
+
+        // Start the application
+        initializeApp();
+    </script>
+</body>
+</html>
